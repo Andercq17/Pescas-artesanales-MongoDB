@@ -1,152 +1,127 @@
-import sqlite3
-import os
+import pymongo
+import socket
+from datetime import datetime
 class accesoDatos:
-    def __obtenerCadenaConexion__(self,id):
-        return os.path.abspath(id)
-    def __realizarConexion(self):
-        cadena_conexion=self.__obtenerCadenaConexion__("pescas_Artesanales.db")
-        con=sqlite3.Connection(cadena_conexion) #conexion
-        cur= con.cursor() #cursor
-        return (cur, con)
+        
+    MONGODB_HOST = str(socket.gethostbyname(socket.gethostname() ))
+    MONGODB_PORT = '27017'
+    URL_CONNECTION = "mongodb://mongoadmin:UnaClav3@" + MONGODB_HOST + ":" + MONGODB_PORT +  "/?authMechanism=DEFAULT"
+    MONGODB_DATABASE = 'pescas_artesanales'
+    MONGODB_TIMEOUT = 1000
+    
+    def __realizarConexion(self):  
+        client = pymongo.MongoClient(self.URL_CONNECTION, serverSelectionTimeoutMS=self.MONGODB_TIMEOUT)
+        client.server_info()
+        return client
+        
+    def obtenerCollection(self,coleccion):
+        client=self.__realizarConexion()
+        collection = client[self.MONGODB_DATABASE][str(coleccion).capitalize()]
+        return collection
+    
+    def obtenerConteo(self,collection):
+        collection_name=self.obtenerCollection('Contador')
+        item_details = collection_name.find({"Coleccion" : str(collection).capitalize()})
+        lista=[]
+        for item in item_details:
+            lista.append(item)
+        return lista[0]['Valor']
+    
     #READ
     def obtenerCuenca(self):
-        (cur,con)= self.__realizarConexion() #cursor
-        res=cur.execute("select * from cuenca").fetchall()
+        collection_name=self.obtenerCollection('Cuenca')
+        item_details = collection_name.find()
         lista=[]
-        for row in res:
-            lista.append(row)
+        for item in item_details:
+            lista.append(item)
         return lista
+    
     def obtenerMetodo(self):
-        (cur,con)= self.__realizarConexion() #cursor
-        res=cur.execute("select * from metodoPesca")
+        collection_name=self.obtenerCollection('Metodos_artesanales')
+        item_details = collection_name.find()
         lista=[]
-        for row in res:
-            lista.append(row)
+        for item in item_details:
+            lista.append(item)
         return lista
+    
     def obtenerPesca(self):
-        (cur,con)= self.__realizarConexion() #cursor
-        res=cur.execute("SELECT consecutivo,nombreCuenca,tipoMetodo,fechaActividad,pesoPescado from pesca join cuenca on pesca.cuenca=cuenca.id join metodoPesca on pesca.metodoPesca=metodoPesca.Id ")
+        collection_name=self.obtenerCollection('Pesca')
+        item_details = collection_name.find()
         lista=[]
-        for row in res:
-            lista.append(row)
+        for item in item_details:
+            lista.append(item)
         return lista
-    def obtenerPescaOriginal(self):
-        (cur,con)= self.__realizarConexion() #cursor
-        res=cur.execute("SELECT * from pesca")
-        lista=[]
-        for row in res:
-            lista.append(row)
-        return lista
+        
     #CREATE
+    def actualizarConteo(self,collection):
+        contador=self.obtenerCollection('Contador')
+        conteo=self.obtenerConteo(str(collection).capitalize())
+        contador.update_one({"Coleccion":str(collection).capitalize()},{'$set':{"Valor":(conteo+1)}})        
+        
     def crearPesca(self,valores):
-        (cur,con)= self.__realizarConexion()
-        cuencas=self.obtenerCuenca()
-        metodos=self.obtenerMetodo()
-        metodo=0
-        cuenca=0
-        for i in range(len(cuencas)):
-            if cuencas[i][1]==str(valores[0]).title():
-                cuenca=cuencas[i][0]
-        for i in range(len(metodos)):
-            if metodos[i][1]==str(valores[1]).title():
-                metodo=metodos[i][0]
-        cur.execute(f"INSERT INTO pesca(cuenca,metodoPesca,fechaActividad,pesoPescado)VALUES({str(cuenca)},{str(metodo)},'{str(valores[2])}',{str(valores[3])})")
-        con.commit()
+        consecutivo=self.obtenerConteo('Pesca')
+        collection=self.obtenerCollection('Pesca')
+        collection.insert_one({"Consecutivo":(consecutivo + 1), "Cuenca":int(valores[0]),"Método_pesca":int(valores[1]), "Fecha":str(valores[2]),"Peso_pescado":float(valores[3])})
+        self.actualizarConteo('Pesca')
+    
     def crearMetodo(self,metodo):
-        (cur,con)= self.__realizarConexion()
-        metodos=self.obtenerMetodo()
-        existe=False
-        for i in range(len(metodos)):
-            if metodos[i][1]==str(metodo).title():
-                existe=True
-        if existe==False: 
-            cur.execute(f"INSERT INTO metodoPesca(tipoMetodo)VALUES('{str(metodo).title()}')")
-            con.commit() 
-            return "False"
-        else:
-            return "True"
+        consecutivo=self.obtenerConteo('Metodos')
+        collection=self.obtenerCollection('Metodos_artesanales')
+        collection.insert_one({"Valor":(consecutivo + 1), "Tipo_metodo":str(metodo).capitalize()})
+        self.actualizarConteo('metodos')
+        
     def crearCuenca(self,cuenca):
-        (cur,con)= self.__realizarConexion()
-        cuencas=self.obtenerCuenca()
-        existe=False
-        for i in range(len(cuencas)):
-            if cuencas[i][1]==str(cuenca).title():
-                existe=True
-        if existe==False:
-            cur.execute(f"INSERT INTO cuenca(nombreCuenca)VALUES('{str(cuenca).title()}')")
-            con.commit()    
-            return "False"
-        else:
-            return "True"  
-    #DELETE
-    def eliminarCuenca(self,cuenca):
-        (cur,con)= self.__realizarConexion()
-        pescas=self.obtenerPesca()
-        existe=False
-        for i in range(len(pescas)):
-            if pescas[i][1]==cuenca:
-               existe=True
-        if existe==False:
-            cur.execute(f"DELETE FROM cuenca WHERE nombreCuenca='{str(cuenca)}'")
-            con.commit()
-            return "False"
-        else:
-            return "True"
-    def eliminarMetodo(self, metodo):
-        (cur,con)= self.__realizarConexion()
-        pescas=self.obtenerPesca()
-        existe=False
-        for i in range(len(pescas)):
-            if pescas[i][2]==metodo:
-               existe=True
-        if existe==False:
-            cur.execute(f"DELETE FROM metodoPesca WHERE tipoMetodo='{str(metodo)}'")
-            con.commit()
-            return "False"
-        else:
-            return "True"
-    def eliminarPesca(self, pesca):
-        (cur,con)= self.__realizarConexion()
-        cur.execute(f"DELETE FROM pesca WHERE consecutivo={pesca}")
-        con.commit()
+        consecutivo=self.obtenerConteo('cuenca')
+        collection=self.obtenerCollection('cuenca')
+        collection.insert_one({"Valor":(consecutivo + 1), "Nombre_cuenca":str(cuenca).capitalize()})
+        self.actualizarConteo('cuenca')
+        
     #UPDATE
     def actualizarCuenca(self, cuenca):
-        (cur,con)= self.__realizarConexion()
-        pescas=self.obtenerPescaOriginal()
-        existe=False
-        for i in range(len(pescas)):
-            if pescas[i][1]==cuenca[0]:
-               existe=True
-        if existe==False:
-            cur.execute(f"UPDATE cuenca SET nombreCuenca = '{str(cuenca[1]).title()}' WHERE id = {cuenca[0]}")
-            con.commit()
-            return "False"
-        else:
-            return "True"
+        collection=self.obtenerCollection('Cuenca')
+        collection.update_one({"Valor":int(cuenca[0])},{'$set':{"Nombre_cuenca":str(cuenca[1]).capitalize()}})  
+        
     def actualizarMetodo(self, metodo):
-        (cur,con)= self.__realizarConexion()
-        pescas=self.obtenerPescaOriginal()
-        existe=False
-        for i in range(len(pescas)):
-            if pescas[i][2]==metodo[0]:
-               existe=True
-        if existe==False:
-            cur.execute(f"UPDATE metodoPesca SET tipoMetodo = '{str(metodo[1]).title()}' WHERE id = {metodo[0]}")
-            con.commit()
-            return "False"
-        else:
-            return "True"
+        collection=self.obtenerCollection('Metodos_artesanales')
+        collection.update_one({"Valor":int(metodo[0])},{'$set':{"Tipo_metodo":str(metodo[1]).capitalize()}})  
+        
     def actualizarPesca(self,pesca):
-        (cur,con)= self.__realizarConexion()
-        cuencas=self.obtenerCuenca()
-        metodos=self.obtenerMetodo()
-        cuencaid=0
-        metodoid=0
-        for i in range(len(cuencas)):
-            if cuencas[i][1]==pesca[1]:
-               cuencaid=cuencas[i][0]
-        for i in range(len(metodos)):
-            if metodos[i][1]==pesca[2]:
-               metodoid=metodos[i][0]
-        cur.execute(f"UPDATE pesca SET cuenca={cuencaid}, metodoPesca={metodoid}, fechaActividad='{pesca[3]}', pesoPescado={pesca[4]} WHERE consecutivo = {pesca[0]}")
-        con.commit()
+        collection=self.obtenerCollection('Pesca')
+        collection.update_one({"Consecutivo":int(pesca[0])},{'$set':{"Cuenca":int(pesca[1]),"Método_pesca":int(pesca[2]),"Fecha":str(pesca[3]),"Peso_pescado":float(pesca[4])}})
+         
+    #DELETE
+    def eliminarCuenca(self,cuenca):
+        collection=self.obtenerCollection('Cuenca')
+        collection.delete_one({ "Valor": int(cuenca) })
+        
+    def eliminarMetodo(self, metodo):
+        collection=self.obtenerCollection('Metodos_artesanales')
+        collection.delete_one({ "Valor": int(metodo) }) 
+        
+    def eliminarPesca(self, pesca):
+        collection=self.obtenerCollection('Pesca')
+        collection.delete_one({ "Consecutivo": int(pesca) })
+        
+
+
+
+a=accesoDatos()
+#valores=["2","3","2022/11/06","15.7"]
+#a.crearPesca(valores)
+
+#valores=["2","2","2","2022/11/10","17.7"]
+#a.actualizarPesca(valores)
+
+#cuenca=[4, "estepede"]
+#a.actualizarCuenca(cuenca)
+
+#metodo=["5","anibal"]
+#a.actualizarMetodo(metodo)
+
+#a.crearCuenca("perro")
+#a.eliminarCuenca(4)
+
+#a.crearMetodo("perrote")
+#a.eliminarMetodo(5)
+
+#a.eliminarPesca(3)
