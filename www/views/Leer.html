@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="../eel.js"></script>
+    <script src="../js/obtenerTablas.js"></script>
+    <link rel="stylesheet" href="../../css/barra.css">
+    <link rel="stylesheet" href="../../css/estilos.css">
+    <title>Leer</title>
+</head>
+<body>
+    <nav>
+        <ul>
+            <li><a href="Crear.html">Crear</a></li>
+            <li><a href="Leer.html">Leer</a></li>
+            <li><a href="Actualizar.html">Actualizar</a></li>
+            <li><a href="Eliminar.html">Eliminar</a></li>
+        </ul>
+    </nav>
+    <h1>Sección Leer</h1>
+    <div class="global">
+        <div class="form">
+            <h1>Tabla a leer</h1>
+            <div class="centrado">
+                <div class="centrar">
+                    <select class="filtro" id="filtro" onchange="obtenerTabla()">
+                        <option disabled selected value> -- selecciona una opción -- </option>
+                        <option value="Cuenca">Cuenca</option>
+                        <option value="MetodoPesca">MetodoPesca</option>
+                        <option value="Pesca">Pesca</option>
+                    </select><br>
+                </div>
+            </div>
+            <div class="centrado">
+                <div id="datos"></div>
+            </div>
+        </div>
+        <div class="tablas">   
+            <div class="contenedor">
+                <table id="tabla">
+                </table>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

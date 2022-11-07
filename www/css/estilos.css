@@ -1,0 +1,105 @@
+body {
+    background-color: black;
+    color:  #20C20E;
+
+}
+.global{
+    margin: 0%;
+    display: flex;
+}
+.form{
+    width: 30%;
+}
+.tablas{
+    width: 70%;
+}
+.filtro, #secciones, #secciones2,#secciones3{
+    height: 40px;
+    width: 300px;
+    color: #20C20E;
+    background-color:  black;
+    border: #20C20E 2px solid;
+    border-radius: 5%;
+    padding-top: 10px;
+    justify-content: center;
+}
+p{
+    font-size: 20px;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    padding-right: 20px;
+    color: white;
+}
+th, td, tr{
+    color:  white;
+    padding: 12px 30px;
+    border: #20C20E 2px solid;
+}
+input{
+    height: 40px;
+    width: 300px;
+    color:  #20C20E;
+    border: #20C20E 2px solid;
+    border-radius: 5px 5px 5px 5px;
+    justify-content: center;
+    align-items: center;
+    
+}
+.contenedor{
+    padding-bottom: 30px;
+    display: grid;
+    place-items: center;
+    justify-content: center;
+}
+h1{
+    text-align: center;
+}
+.centrado{
+    margin: 0%;
+    display: flex;
+    text-align: center;
+}
+#datos{
+    width: 800px;
+    margin:0px auto;
+    padding-bottom: 10px;
+}
+.centrar{
+    width: 800px;
+    padding-top: 20px;
+    margin:0px auto;
+}
+.ov-btn-grow-skew {
+    margin-top: 20px;
+    background: #fff; /* color de fondo */
+    color: #4741d7; /* color de fuente */
+    border: 2px solid #4741d7; /* tamaño y color de borde */
+    padding: 16px 20px;
+    border-radius: 3px; /* redondear bordes */
+    position: relative;
+    z-index: 1;
+    overflow: hidden;
+    display: inline-block;
+  }
+  .ov-btn-grow-skew:hover {
+    color: #fff;/* color de fuente hover */
+  }
+  .ov-btn-grow-skew::after {
+    content: "";
+    background: #4741d7; /* color de fondo hover */
+    position: absolute;
+    z-index: -1;
+    padding: 16px 20px;
+    display: block;
+    left: -20%;
+    right: -20%;
+    top: 0;
+    bottom: 0;
+    transform: skewX(-45deg) scale(0, 1);
+    transition: all 0.3s ease;
+  }
+  .ov-btn-grow-skew:hover::after {
+    transition: all 0.3s ease-out;
+    transform: skewX(-45deg) scale(1, 1);
+  }
+ 

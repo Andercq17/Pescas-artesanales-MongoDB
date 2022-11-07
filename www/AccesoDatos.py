@@ -1,6 +1,5 @@
 import pymongo
 import socket
-from datetime import datetime
 class accesoDatos:
         
     MONGODB_HOST = str(socket.gethostbyname(socket.gethostname() ))
@@ -13,7 +12,9 @@ class accesoDatos:
         client = pymongo.MongoClient(self.URL_CONNECTION, serverSelectionTimeoutMS=self.MONGODB_TIMEOUT)
         client.server_info()
         return client
-        
+
+#--------------------------------------------------------------------------------------------
+    #READ
     def obtenerCollection(self,coleccion):
         client=self.__realizarConexion()
         collection = client[self.MONGODB_DATABASE][str(coleccion).capitalize()]
@@ -26,14 +27,13 @@ class accesoDatos:
         for item in item_details:
             lista.append(item)
         return lista[0]['Valor']
-    
-    #READ
+
     def obtenerCuenca(self):
         collection_name=self.obtenerCollection('Cuenca')
         item_details = collection_name.find()
         lista=[]
         for item in item_details:
-            lista.append(item)
+            lista.append(list(item.values()))
         return lista
     
     def obtenerMetodo(self):
@@ -41,17 +41,33 @@ class accesoDatos:
         item_details = collection_name.find()
         lista=[]
         for item in item_details:
-            lista.append(item)
+            lista.append(list(item.values()))
         return lista
     
     def obtenerPesca(self):
         collection_name=self.obtenerCollection('Pesca')
         item_details = collection_name.find()
+        cuencas=self.obtenerCuenca()
+        metodos=self.obtenerMetodo()
         lista=[]
         for item in item_details:
-            lista.append(item)
+            lista.append(list(item.values()))
+        for pesca in lista:
+            for cuenca in cuencas:
+                if cuenca[1]==pesca[2]:
+                    pesca[2]=cuenca[2]
+            for metodo in metodos:
+                if metodo[1]==pesca[3]:
+                    pesca[3]=metodo[2]
         return lista
-        
+    def obtenerPescaOriginal(self):
+        collection_name=self.obtenerCollection('Pesca')
+        item_details = collection_name.find()
+        lista=[]
+        for item in item_details:
+            lista.append(list(item.values()))
+        return lista
+#------------------------------------------------------------------------------------
     #CREATE
     def actualizarConteo(self,collection):
         contador=self.obtenerCollection('Contador')
@@ -67,61 +83,92 @@ class accesoDatos:
     def crearMetodo(self,metodo):
         consecutivo=self.obtenerConteo('Metodos')
         collection=self.obtenerCollection('Metodos_artesanales')
-        collection.insert_one({"Valor":(consecutivo + 1), "Tipo_metodo":str(metodo).capitalize()})
-        self.actualizarConteo('metodos')
+        metodos=self.obtenerMetodo()
+        existe=False
+        for i in range(len(metodos)):
+            if metodos[i][2]==str(metodo).title():
+                existe=True
+        if existe==False: 
+            collection.insert_one({"Valor":(consecutivo + 1), "Tipo_metodo":str(metodo).title()})
+            self.actualizarConteo('metodos')
+            return "False"
+        else:
+            return "True"
         
     def crearCuenca(self,cuenca):
         consecutivo=self.obtenerConteo('cuenca')
         collection=self.obtenerCollection('cuenca')
-        collection.insert_one({"Valor":(consecutivo + 1), "Nombre_cuenca":str(cuenca).capitalize()})
-        self.actualizarConteo('cuenca')
-        
+        cuencas=self.obtenerCuenca()
+        existe=False
+        for i in range(len(cuencas)):
+            if cuencas[i][2]==str(cuenca).title():
+                existe=True
+        if existe==False:
+            collection.insert_one({"Valor":(consecutivo + 1), "Nombre_cuenca":str(cuenca).title()})
+            self.actualizarConteo('cuenca')
+            return "False"
+        else:
+            return "True"  
+#-------------------------------------------------------------------------------------
     #UPDATE
     def actualizarCuenca(self, cuenca):
         collection=self.obtenerCollection('Cuenca')
-        collection.update_one({"Valor":int(cuenca[0])},{'$set':{"Nombre_cuenca":str(cuenca[1]).capitalize()}})  
+        pescas=self.obtenerPescaOriginal()
+        existe=False
+        for i in range(len(pescas)):
+            if int(pescas[i][2])==int(cuenca[0]):
+               existe=True
+        if existe==False:
+            collection.update_one({"Valor":int(cuenca[0])},{'$set':{"Nombre_cuenca":str(cuenca[1]).title()}})  
+            return "False"
+        else:
+            return "True"
         
     def actualizarMetodo(self, metodo):
         collection=self.obtenerCollection('Metodos_artesanales')
-        collection.update_one({"Valor":int(metodo[0])},{'$set':{"Tipo_metodo":str(metodo[1]).capitalize()}})  
+        pescas=self.obtenerPescaOriginal()
+        existe=False
+        for i in range(len(pescas)):
+            if int(pescas[i][3])==int(metodo[0]):
+               existe=True
+        if existe==False:
+            collection.update_one({"Valor":int(metodo[0])},{'$set':{"Tipo_metodo":str(metodo[1]).title()}})  
+            return "False"
+        else:
+            return "True"
         
     def actualizarPesca(self,pesca):
         collection=self.obtenerCollection('Pesca')
         collection.update_one({"Consecutivo":int(pesca[0])},{'$set':{"Cuenca":int(pesca[1]),"Método_pesca":int(pesca[2]),"Fecha":str(pesca[3]),"Peso_pescado":float(pesca[4])}})
-         
+
+#--------------------------------------------------------------------------------------------------------------------
     #DELETE
     def eliminarCuenca(self,cuenca):
         collection=self.obtenerCollection('Cuenca')
-        collection.delete_one({ "Valor": int(cuenca) })
+        pescas=self.obtenerPescaOriginal()
+        existe=False
+        for i in range(len(pescas)):
+            if int(pescas[i][2])==int(cuenca):
+               existe=True
+        if existe==False:
+            collection.delete_one({ "Valor": int(cuenca) })
+            return "False"
+        else:
+            return "True"
         
     def eliminarMetodo(self, metodo):
         collection=self.obtenerCollection('Metodos_artesanales')
-        collection.delete_one({ "Valor": int(metodo) }) 
+        pescas=self.obtenerPescaOriginal()
+        existe=False
+        for i in range(len(pescas)):
+            if int(pescas[i][3])==int(metodo):
+               existe=True
+        if existe==False:
+            collection.delete_one({ "Valor": int(metodo) }) 
+            return "False"
+        else:
+            return "True"
         
     def eliminarPesca(self, pesca):
         collection=self.obtenerCollection('Pesca')
-        collection.delete_one({ "Consecutivo": int(pesca) })
-        
-
-
-
-a=accesoDatos()
-#valores=["2","3","2022/11/06","15.7"]
-#a.crearPesca(valores)
-
-#valores=["2","2","2","2022/11/10","17.7"]
-#a.actualizarPesca(valores)
-
-#cuenca=[4, "estepede"]
-#a.actualizarCuenca(cuenca)
-
-#metodo=["5","anibal"]
-#a.actualizarMetodo(metodo)
-
-#a.crearCuenca("perro")
-#a.eliminarCuenca(4)
-
-#a.crearMetodo("perrote")
-#a.eliminarMetodo(5)
-
-#a.eliminarPesca(3)
+        collection.delete_one({"Consecutivo": int(pesca)})
